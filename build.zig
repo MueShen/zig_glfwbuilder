@@ -30,11 +30,6 @@ pub fn build(b: *std.Build) void {
     
 
     glfw_module.addCSourceFiles(.{.files = &[_][]const u8{
-        "ext/glfw/src/cocoa_init.m",
-        "ext/glfw/src/cocoa_joystick.m",
-        "ext/glfw/src/cocoa_monitor.m",
-        "ext/glfw/src/cocoa_time.c",
-        "ext/glfw/src/cocoa_window.m",
         "ext/glfw/src/context.c",
         "ext/glfw/src/egl_context.c",
         "ext/glfw/src/glx_context.c",
@@ -70,7 +65,7 @@ pub fn build(b: *std.Build) void {
         "ext/glfw/src/x11_monitor.c",
         "ext/glfw/src/x11_window.c",
         "ext/glfw/src/xkb_unicode.c"
-    }, .flags= &[_][]const u8{ "-D_GLFW_X11","-D_GLFW_OPENGL_LIBRARY","-Wall", "-Wextra"}});
+    }, .flags= &[_][]const u8{ "-D_GLFW_X11", "-Wall", "-Wextra"}});
 
     const exe=b.addExecutable(.{
         .name="HelloWindow",

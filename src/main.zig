@@ -1,6 +1,6 @@
-const std= @include("std");
-const glad= @include("glad");
-const gl= @include("glfw");
+const std= @import("std");
+const glad= @import ("glad");
+const gl= @import ("glfw");
 
 
 pub fn main ()!void {
