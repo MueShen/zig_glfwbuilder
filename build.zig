@@ -77,7 +77,8 @@ pub fn build(b: *std.Build) void {
 
     });
     exe.addIncludePath(b.path("ext/glad/"));
-    exe.addIncludePath(b.path("ext/glfw/include"));
+    exe.addIncludePath(b.path("ext/glad/glad/"));
+    exe.addIncludePath(b.path("ext/glfw/include/GLFW"));
 
 
     exe.linkLibrary(glad);

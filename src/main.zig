@@ -2,7 +2,52 @@ const std= @import("std");
 const glad= @import ("glad");
 const gl= @import ("glfw");
 
+const c= @cImport({
+    @cInclude("glad.h");
+    @cInclude("glfw.h");
+});
 
 pub fn main ()!void {
-    std.debug.print("Hello zig!\n", .{});
+    _= c.glfwInit();
+    c.glfwWindowHint(c.GLFW_CONTEXT_VERSION_MAJOR,3);
+    c.glfwWindowHint(c.GLFW_CONTEXT_VERSION_MINOR,3);
+    c.glfwWindowHint(c.GLFW_OPENGL_PROFILE, c.GLFW_OPENGL_CORE_PROFILE);
+    const window= c.glfwCreateWindow(800,600, "LearnOpenGL",null,null);
+    if (window == null){
+        c.glfwTerminate();
+        return error.WindowCreationFailed;
+    }
+    c.glfwMakeContextCurrent(window);
+    _=c.glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+
+    if(c.gladLoadGLLoader(@ptrCast(&c.glfwGetProcAddress))==c.GL_FALSE){
+        return error.FailedToInitGlad;
+    }
+
+    while (c.glfwWindowShouldClose(window)==c.GL_FALSE){
+        processInput(window);
+        renderColor(window);
+        c.glfwSwapBuffers(window);
+        c.glfwPollEvents();
+    }
+    c.glfwTerminate();
+    return;
+}
+
+pub fn processInput(window: ?*c.GLFWwindow) void {
+    if(c.glfwGetKey(window, c.GLFW_KEY_ESCAPE) == c.GLFW_PRESS){
+        c.glfwSetWindowShouldClose(window, c.GL_TRUE);
+    }
+}
+
+pub fn framebuffer_size_callback(window: ?*c.GLFWwindow, width: c_int, height: c_int) callconv(.c) void{
+    _=window;
+    c.glViewport(0,0,width,height);
+}
+
+
+pub fn renderColor(window: ?*c.GLFWwindow) void{
+    _=window;
+    c.glClearColor(0.1, 0.1, 0.1,1.0);
+    c.glClear(c.GL_COLOR_BUFFER_BIT);
 }
