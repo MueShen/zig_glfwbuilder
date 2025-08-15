@@ -7,10 +7,12 @@ const c= @cImport({
     @cInclude("glfw.h");
 });
 
+var wireframemode: bool= false;
+
 pub fn main ()!void {
     _= c.glfwInit();
     c.glfwWindowHint(c.GLFW_CONTEXT_VERSION_MAJOR,4);
-    c.glfwWindowHint(c.GLFW_CONTEXT_VERSION_MINOR,3);
+    c.glfwWindowHint(c.GLFW_CONTEXT_VERSION_MINOR,5);
     c.glfwWindowHint(c.GLFW_OPENGL_PROFILE, c.GLFW_OPENGL_CORE_PROFILE);
     const window= c.glfwCreateWindow(800,600, "LearnOpenGL",null,null);
     if (window == null){
@@ -24,10 +26,16 @@ pub fn main ()!void {
         return error.FailedToInitGlad;
     }
     
-    const verts: [9]f32 = .{
-        -0.5,-0.5,0.0,
-        0.5,-0.5,0.0,
-        0.0,0.5,0.0,
+    const verts= [_]f32{
+        0.5,  0.5, 0.0,  // top right
+        0.5, -0.5, 0.0,  // bottom right
+        -0.5, -0.5, 0.0,  // bottom left
+        -0.5,  0.5, 0.0,  
+    };
+
+    const indicies=[_]i32{
+        0,1,3,
+        1,2,3,
     };
     const vertShaderCode: []const u8= @embedFile("shader/shader.vert");
     const fragShaderCode: []const u8= @embedFile("shader/shader.frag");
@@ -38,16 +46,18 @@ pub fn main ()!void {
     c.glShaderSource(vertexShader, 1, @ptrCast(&vertShaderCode),null);
     c.glShaderSource(fragmentShader,1,@ptrCast(&fragShaderCode),null);
 
+    c.glCompileShader(fragmentShader);
+    c.glCompileShader(vertexShader);
     var success: c_int= undefined;
-    const infolog: [*c]u8= undefined;
+    var infolog: [512]u8= undefined;
     c.glGetShaderiv(vertexShader, c.GL_COMPILE_STATUS, &success);
     if(success!=c.GL_TRUE){
-        c.glGetShaderInfoLog(vertexShader, 512, null, infolog);
+        c.glGetShaderInfoLog(vertexShader, 512, null, @ptrCast(infolog[0..].ptr));
         return error.VertexShaderCompilationFailed;
     }
     c.glGetShaderiv(fragmentShader, c.GL_COMPILE_STATUS, &success);
     if(success!=c.GL_TRUE){
-        c.glGetShaderInfoLog(fragmentShader,512, null, infolog);
+        c.glGetShaderInfoLog(fragmentShader,512, null, @ptrCast(infolog[0..].ptr));
         return error.FragmentShaderCompilationFailed;
     }
 
@@ -58,33 +68,38 @@ pub fn main ()!void {
     
     c.glGetProgramiv(shaderProgram,c.GL_LINK_STATUS, &success);
     if(success!=c.GL_TRUE){
-        c.glGetShaderInfoLog(fragmentShader,512, null, infolog);
+        c.glGetShaderInfoLog(fragmentShader,512, null, @ptrCast(infolog[0..].ptr));
         return error.ShaderProgramLinkingFailed;
     }
     
 
     _= c.glCompileShader(vertexShader);
-    var VBO: c_uint= undefined;
-    var VAO: c_uint= undefined;
+    var VBO: c_uint = undefined;
+    var VAO: c_uint = undefined;
+    var EBO: c_uint = undefined;
 
     c.glGenVertexArrays(1, &VAO);
     c.glGenBuffers(1,&VBO);   
-        
+    c.glGenBuffers(1,&EBO);
+
     c.glBindVertexArray(VAO);
-    
     c.glBindBuffer(c.GL_ARRAY_BUFFER, VBO);
     c.glBufferData(c.GL_ARRAY_BUFFER, @sizeOf(f32)*verts.len, @ptrCast(&verts), c.GL_STATIC_DRAW);
-    //vertex attribues go here
+
+    c.glBindBuffer(c.GL_ELEMENT_ARRAY_BUFFER,EBO);
+    c.glBufferData(c.GL_ELEMENT_ARRAY_BUFFER, @sizeOf(i32)*indicies.len, @ptrCast(&indicies), c.GL_STATIC_DRAW);
+
+        //vertex attribues go here
     const  vdptr: ?*c.GLvoid =@ptrFromInt(0x0);
     c.glVertexAttribPointer(0,3, c.GL_FLOAT, c.GL_FALSE, 3 * @sizeOf(f32), @ptrCast(vdptr));
     c.glEnableVertexAttribArray(0);
 
-    //c.glBindBuffer(c.GL_ARRAY_BUFFER,0);
-    //c.glBindVertexArray(0);
+    c.glBindBuffer(c.GL_ARRAY_BUFFER,0);
+    c.glBindVertexArray(0);
 
 
-    //c.glDeleteShader(vertexShader);
-    //c.glDeleteShader(fragmentShader);
+    c.glDeleteShader(vertexShader);
+    c.glDeleteShader(fragmentShader);
     
 
     while (c.glfwWindowShouldClose(window)==c.GL_FALSE){
@@ -95,7 +110,12 @@ pub fn main ()!void {
         
         c.glUseProgram(shaderProgram);
         c.glBindVertexArray(VAO);
-        //c.glDrawArrays(c.GL_TRIANGLES,0,3);
+        if(wireframemode){
+            c.glPolygonMode(c.GL_FRONT_AND_BACK, c.GL_LINE);
+        } else {
+            c.glPolygonMode(c.GL_FRONT_AND_BACK, c.GL_FILL);
+        }
+        c.glDrawElements(c.GL_TRIANGLES,6, c.GL_UNSIGNED_INT, @ptrCast(vdptr));
 
         c.glfwSwapBuffers(window);
         c.glfwPollEvents();
@@ -108,6 +128,15 @@ pub fn processInput(window: ?*c.GLFWwindow) void {
     if(c.glfwGetKey(window, c.GLFW_KEY_ESCAPE) == c.GLFW_PRESS){
         c.glfwSetWindowShouldClose(window, c.GL_TRUE);
     }
+    
+    if(c.glfwGetKey(window, c.GLFW_KEY_R) == c.GLFW_PRESS){
+        wireframemode=true;
+    }
+    if(c.glfwGetKey(window, c.GLFW_KEY_R) == c.GLFW_RELEASE){
+        wireframemode=false;
+    }
+
+
 }
 
 pub fn framebuffer_size_callback(window: ?*c.GLFWwindow, width: c_int, height: c_int) callconv(.c) void{
