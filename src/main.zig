@@ -28,7 +28,7 @@ pub fn main ()!void {
     }
     
     const verts= [_]f32{
-        0.5,  -0.5, 0.0, 0.1, 0.0, 0.0,  
+        0.5,  -0.5, 0.0, 1.0, 0.0, 0.0,  
         -0.5, -0.5, 0.0,  0.0, 1.0, 0.0,
         0.0, 0.5, 0.0,  0.0, 0.0, 1.0
     };
@@ -86,16 +86,14 @@ pub fn main ()!void {
     std.debug.print("vertecies array lenght : {}, total size of f32: {}, final lenght {}", .{
         verts.len, @sizeOf(f32), verts.len * @sizeOf(f32)
     });
-    c.glBufferData(c.GL_ARRAY_BUFFER, @sizeOf(f32)*verts.len, @ptrCast(&verts), c.GL_STATIC_DRAW);
+    c.glBufferData(c.GL_ARRAY_BUFFER, @sizeOf(f32)*verts.len, @ptrCast(verts[0..].ptr), c.GL_STATIC_DRAW);
 
     
-        //vertex attribues go here
-    const  vdptr: ?*c.GLvoid =@ptrFromInt(0x0);
      
     //setup vertex attributes 
-    c.glVertexAttribPointer(0,3, c.GL_FLOAT, c.GL_FALSE, 6 * @sizeOf(f32), @ptrCast(vdptr));
+    c.glVertexAttribPointer(0,3, c.GL_FLOAT, c.GL_FALSE, 6 * @sizeOf(f32), @ptrFromInt(0));
     c.glEnableVertexAttribArray(0);
-    c.glVertexAttribPointer(1,3, c.GL_FLOAT, c.GL_FALSE, 6 * @sizeOf(f32), @ptrCast(returnIntPtr(3 * @sizeOf(f32))));
+    c.glVertexAttribPointer(1,3, c.GL_FLOAT, c.GL_FALSE, 6 * @sizeOf(f32), @ptrFromInt(3 * @sizeOf(f32)));
     c.glEnableVertexAttribArray(1);
     
     //c.glBindBuffer(c.GL_ELEMENT_ARRAY_BUFFER,EBO);
@@ -134,9 +132,6 @@ pub fn main ()!void {
     return;
 }
 
-pub fn returnIntPtr( i: i64) ?*c.GLvoid {
-    return @ptrFromInt(@as(usize,@intCast(i)));
-}
 
 pub fn processInput(window: ?*c.GLFWwindow) void {
     if(c.glfwGetKey(window, c.GLFW_KEY_ESCAPE) == c.GLFW_PRESS){
