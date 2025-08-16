@@ -5,6 +5,7 @@ const gl= @import ("glfw");
 const c= @cImport({
     @cInclude("glad.h");
     @cInclude("glfw.h");
+    @cInclude("math.h");
 });
 
 var wireframemode: bool= false;
@@ -27,16 +28,14 @@ pub fn main ()!void {
     }
     
     const verts= [_]f32{
-        0.5,  0.5, 0.0,  // top right
-        0.5, -0.5, 0.0,  // bottom right
-        -0.5, -0.5, 0.0,  // bottom left
-        -0.5,  0.5, 0.0,  
+        0.5,  -0.5, 0.0, 0.1, 0.0, 0.0,  
+        -0.5, -0.5, 0.0,  0.0, 1.0, 0.0,
+        0.0, 0.5, 0.0,  0.0, 0.0, 1.0
     };
 
-    const indicies=[_]i32{
-        0,1,3,
-        1,2,3,
-    };
+    //const indicies=[_]i32{
+    //    0,1,3
+    //};
     const vertShaderCode: []const u8= @embedFile("shader/shader.vert");
     const fragShaderCode: []const u8= @embedFile("shader/shader.frag");
 
@@ -76,52 +75,67 @@ pub fn main ()!void {
     _= c.glCompileShader(vertexShader);
     var VBO: c_uint = undefined;
     var VAO: c_uint = undefined;
-    var EBO: c_uint = undefined;
+    //var EBO: c_uint = undefined;
 
     c.glGenVertexArrays(1, &VAO);
     c.glGenBuffers(1,&VBO);   
-    c.glGenBuffers(1,&EBO);
+    //c.glGenBuffers(1,&EBO);
 
     c.glBindVertexArray(VAO);
     c.glBindBuffer(c.GL_ARRAY_BUFFER, VBO);
+    std.debug.print("vertecies array lenght : {}, total size of f32: {}, final lenght {}", .{
+        verts.len, @sizeOf(f32), verts.len * @sizeOf(f32)
+    });
     c.glBufferData(c.GL_ARRAY_BUFFER, @sizeOf(f32)*verts.len, @ptrCast(&verts), c.GL_STATIC_DRAW);
 
-    c.glBindBuffer(c.GL_ELEMENT_ARRAY_BUFFER,EBO);
-    c.glBufferData(c.GL_ELEMENT_ARRAY_BUFFER, @sizeOf(i32)*indicies.len, @ptrCast(&indicies), c.GL_STATIC_DRAW);
-
+    
         //vertex attribues go here
     const  vdptr: ?*c.GLvoid =@ptrFromInt(0x0);
-    c.glVertexAttribPointer(0,3, c.GL_FLOAT, c.GL_FALSE, 3 * @sizeOf(f32), @ptrCast(vdptr));
+     
+    //setup vertex attributes 
+    c.glVertexAttribPointer(0,3, c.GL_FLOAT, c.GL_FALSE, 6 * @sizeOf(f32), @ptrCast(vdptr));
     c.glEnableVertexAttribArray(0);
+    c.glVertexAttribPointer(1,3, c.GL_FLOAT, c.GL_FALSE, 6 * @sizeOf(f32), @ptrCast(returnIntPtr(3 * @sizeOf(f32))));
+    c.glEnableVertexAttribArray(1);
+    
+    //c.glBindBuffer(c.GL_ELEMENT_ARRAY_BUFFER,EBO);
+    //c.glBufferData(c.GL_ELEMENT_ARRAY_BUFFER, @sizeOf(i32)*indicies.len, @ptrCast(&indicies), c.GL_STATIC_DRAW);
 
-    c.glBindBuffer(c.GL_ARRAY_BUFFER,0);
-    c.glBindVertexArray(0);
 
 
+    //c.glBindBuffer(c.GL_ARRAY_BUFFER,0);
+    //c.glBindVertexArray(0);
+
+    c.glUseProgram(shaderProgram);
     c.glDeleteShader(vertexShader);
     c.glDeleteShader(fragmentShader);
     
-
+   
     while (c.glfwWindowShouldClose(window)==c.GL_FALSE){
         processInput(window);
         
         c.glClearColor(0.1, 0.1, 0.1,1.0);
         c.glClear(c.GL_COLOR_BUFFER_BIT);
         
-        c.glUseProgram(shaderProgram);
         c.glBindVertexArray(VAO);
+                
         if(wireframemode){
             c.glPolygonMode(c.GL_FRONT_AND_BACK, c.GL_LINE);
         } else {
             c.glPolygonMode(c.GL_FRONT_AND_BACK, c.GL_FILL);
         }
-        c.glDrawElements(c.GL_TRIANGLES,6, c.GL_UNSIGNED_INT, @ptrCast(vdptr));
+        c.glDrawArrays(c.GL_TRIANGLES,0,3);
+
 
         c.glfwSwapBuffers(window);
         c.glfwPollEvents();
     }
     c.glfwTerminate();
     return;
+}
+
+pub fn returnIntPtr( i: i64) ?*c.GLvoid {
+    return @ptrFromInt(@as(usize,@intCast(i)));
 }
 
 pub fn processInput(window: ?*c.GLFWwindow) void {
